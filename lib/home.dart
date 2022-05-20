@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-const String kFileName = 'example.txt';
+const String kFileName = 'example3.txt';
 const String kFileContent = 'Some random content for this file';
 
 class MyHomePage extends StatefulWidget {
@@ -22,20 +22,23 @@ class _MyHomePageState extends State<MyHomePage> {
   bool submittedWithSuccess = false;
 
   Future<void> _handlePermission() async {
-    Permission permission = Platform.isAndroid
-        ? Permission.storage
-        : Permission.manageExternalStorage;
+    List<Permission> permissions = [
+      Permission.storage,
+      Permission.manageExternalStorage,
+    ];
 
-    var status = await permission.status;
-    if (status.isDenied) {
-      status = await permission.request();
-    }
-    if(status.isPermanentlyDenied) {
-      await openAppSettings();
-    }
+    for(Permission permission in permissions) {
+      var status = await permission.status;
+      if (status.isDenied) {
+        status = await permission.request();
+      }
+      if(status.isPermanentlyDenied) {
+        await openAppSettings();
+      }
 
-    if(!status.isGranted) {
-      throw Exception('Has no permission');
+      if(!status.isGranted) {
+        throw Exception('Has no permission');
+      }
     }
   }
 
@@ -47,18 +50,16 @@ class _MyHomePageState extends State<MyHomePage> {
       });
 
       _handlePermission();
-      final directory = Platform.isAndroid
-          ? await getExternalStorageDirectory()
-          : await getApplicationDocumentsDirectory();
+      final dirPath = Platform.isAndroid
+          ? '/storage/emulated/0/Download'
+          : (await getApplicationDocumentsDirectory()).path;
 
-      final filePath = '${directory!.path}/$kFileName';
+      final filePath = '$dirPath/$kFileName';
       dev.log('Try to save file in Path $filePath');
 
       File file = File(filePath);
-      await file.create();
+      await file.create(recursive: true);
       await file.writeAsString(kFileContent);
-
-      await file.resolveSymbolicLinks();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
